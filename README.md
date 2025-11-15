@@ -1,4 +1,4 @@
-# Local LLM Runner
+# Ego Proxy
 
 Run powerful AI language models on your computer completely offline. No cloud dependencies, no data shared externally. Perfect for chatting with AI while keeping everything private.
 

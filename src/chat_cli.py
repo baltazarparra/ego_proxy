@@ -116,7 +116,7 @@ class ChatCLI:
     def run(self):
         """Start the interactive chat loop."""
         print("=" * 60)
-        print("Local LLM Chat Interface")
+        print("Ego Proxy Chat Interface")
         print("=" * 60)
         print(f"Model: {config.MODEL_ID}")
         print(f"Device: {config.get_device()}")
@@ -172,7 +172,7 @@ class ChatCLI:
 
 def main():
     """Main entry point for the chat CLI."""
-    parser = argparse.ArgumentParser(description="Interactive chat with local LLM")
+    parser = argparse.ArgumentParser(description="Interactive chat with ego_proxy")
     parser.add_argument(
         "--model",
         type=str,

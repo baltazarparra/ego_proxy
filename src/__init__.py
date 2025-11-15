@@ -1,7 +1,7 @@
 """
-Local LLM with Hugging Face & Python
+Ego Proxy with Hugging Face & Python
 
-A modern open-source LLM runner that supports:
+A modern open-source AI proxy that supports:
 - Text generation via script
 - Interactive CLI chat
 - HTTP API for integration

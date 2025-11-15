@@ -103,7 +103,7 @@ class RichChatCLI:
     def print_welcome(self):
         """Display welcome message with Rich formatting."""
         welcome_text = f"""
-# 🤖 Local LLM Chat Interface
+# 🤖 Ego Proxy Chat Interface
 
 **Model**: {config.MODEL_ID}
 **Device**: {config.get_device()}
@@ -333,7 +333,7 @@ class RichChatCLI:
 def main():
     """Main entry point for the enhanced chat CLI."""
     parser = argparse.ArgumentParser(
-        description="Enhanced interactive chat with local LLM (Rich UI)"
+        description="Enhanced interactive chat with ego_proxy (Rich UI)"
     )
     parser.add_argument(
         "--model", type=str, default=None, help=f"Model ID (default: {config.MODEL_ID})"

@@ -1,5 +1,5 @@
 """
-Central configuration module for the local LLM application.
+Central configuration module for the ego_proxy application.
 
 This module manages all configuration settings including:
 - Model selection and parameters

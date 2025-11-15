@@ -118,7 +118,7 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title="Local LLM API",
+    title="Ego Proxy API",
     description="REST API for local language model inference",
     version="0.1.0",
     lifespan=lifespan,
@@ -129,7 +129,7 @@ app = FastAPI(
 async def root():
     """Root endpoint with basic info."""
     return {
-        "name": "Local LLM API",
+        "name": "Ego Proxy API",
         "version": "0.1.0",
         "model": config.MODEL_ID,
         "status": "running" if model is not None else "not loaded",

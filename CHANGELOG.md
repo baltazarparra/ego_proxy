@@ -121,7 +121,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### v0.1.0 Highlights
 
-This is the first functional release of llm-local, featuring:
+This is the first functional release of ego_proxy, featuring:
 
 🎯 **Complete Core Functionality**: All Phase 0-4 features implemented and tested
 ✨ **4 Interfaces**: Multiple ways to interact with local LLMs
@@ -134,5 +134,5 @@ Perfect for developers, researchers, and anyone wanting local LLM capabilities w
 
 ---
 
-**Contributors**: llm-local team  
+**Contributors**: ego_proxy team  
 **License**: MIT

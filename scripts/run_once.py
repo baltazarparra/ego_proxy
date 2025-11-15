@@ -24,7 +24,7 @@ from src.model_loader import get_model_info, load_tokenizer_and_model
 def main():
     """Main entry point for one-off text generation."""
     parser = argparse.ArgumentParser(
-        description="Generate text completion using local LLM",
+        description="Generate text completion using ego_proxy",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

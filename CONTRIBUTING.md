@@ -1,6 +1,6 @@
-# Contributing to llm-local
+# Contributing to ego_proxy
 
-First off, thank you for considering contributing to llm-local! It's people like you that make this project better for everyone.
+First off, thank you for considering contributing to ego_proxy! It's people like you that make this project better for everyone.
 
 ## 📋 Table of Contents
 
@@ -109,8 +109,8 @@ We're actively looking for contributions in these areas:
 
 ```bash
 # 1. Fork and clone
-git clone https://github.com/YOUR-USERNAME/llm-local.git
-cd llm-local
+git clone https://github.com/YOUR-USERNAME/ego_proxy.git
+cd ego_proxy
 
 # 2. Create virtual environment
 python3 -m venv .venv
@@ -579,8 +579,8 @@ direnv allow .
 
 ## 📧 Questions?
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/llm-local/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/llm-local/discussions)
+- **Issues**: [GitHub Issues](https://github.com/yourusername/ego_proxy/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/ego_proxy/discussions)
 
 ---
 
@@ -593,9 +593,9 @@ Every contribution, no matter how small, is valuable. Whether it's:
 - Improving documentation
 - Helping others
 
-You're making llm-local better for everyone. Thank you! 🎉
+You're making ego_proxy better for everyone. Thank you! 🎉
 
 ---
 
 **Happy Coding!**  
-The llm-local Team
+The ego_proxy Team

@@ -1,4 +1,4 @@
-# Core dependencies for local LLM
+# Core dependencies for ego_proxy
 # Python 3.10+ required
 
 # PyTorch (GPU support)

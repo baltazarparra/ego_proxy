@@ -1,6 +1,6 @@
-# Development Plan: llm-local
+# Development Plan: ego_proxy
 
-**Project**: llm-local - Local LLM Runner  
+**Project**: ego_proxy - Ego Proxy  
 **Status**: v0.1.0 - Core Complete, Production Ready  
 **License**: MIT
 
@@ -8,7 +8,7 @@
 
 ## 🎯 Project Vision
 
-Build a production-ready, privacy-first local LLM runner with multiple interfaces, beautiful UX, and enterprise-grade features. Enable anyone to run powerful open-source language models locally without cloud dependencies.
+Build a production-ready, privacy-first AI proxy with multiple interfaces, beautiful UX, and enterprise-grade features. Enable anyone to run powerful open-source language models locally without cloud dependencies.
 
 ---
 
