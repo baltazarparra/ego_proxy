@@ -3,7 +3,7 @@ Run powerful AI language models FREE completely offline. No "Big Brother" with y
 
 ## What You Can Do
 
-**Personal Assistant with Memory:** An intelligent personal work assistant that remembers everything you tell it and integrates with your Google Calendar. Automatically tracks people, topics, dates, and provides context-aware advice based on your conversation history. Perfect for logging daily work activities, managing your schedule, and getting intelligent reminders.
+**Personal Assistant with Memory:** Talk naturally with your AI assistant, who remembers everything you've said and can provide context-aware responses and integrate with Google Calendar for event management.
 
 ## What You Need
 
