@@ -72,7 +72,7 @@ class MetadataExtractor:
             return metadata
             
         except Exception as e:
-            logger.error(f"Error extracting metadata: {e}", exc_info=True)
+            logger.warning(f"Could not extract metadata: {e}")
             return self._empty_metadata()
 
     def _parse_json_response(self, response: str) -> Dict:

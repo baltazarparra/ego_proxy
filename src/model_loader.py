@@ -67,33 +67,33 @@ def load_tokenizer_and_model(
     device_map = device_map or config.DEVICE_MAP
     torch_dtype = torch_dtype or config.TORCH_DTYPE
 
-    logger.info(f"Loading model: {model_id}")
-    logger.info(f"Device map: {device_map}")
-    logger.info(f"Torch dtype: {torch_dtype}")
+    logger.debug(f"Loading model: {model_id}")
+    logger.debug(f"Device map: {device_map}")
+    logger.debug(f"Torch dtype: {torch_dtype}")
 
     # Check CUDA availability
     if torch.cuda.is_available():
-        logger.info(f"GPU detected: {torch.cuda.get_device_name(0)}")
-        logger.info(f"CUDA version: {torch.version.cuda}")
+        logger.debug(f"GPU detected: {torch.cuda.get_device_name(0)}")
+        logger.debug(f"CUDA version: {torch.version.cuda}")
     else:
-        logger.warning("No GPU detected, using CPU")
+        logger.debug("No GPU detected, using CPU")
 
     try:
         # Load tokenizer
-        logger.info("Loading tokenizer...")
+        logger.debug("Loading tokenizer...")
         tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
 
         # Load model
-        logger.info("Loading model...")
+        logger.debug("Loading model...")
         dtype = get_torch_dtype(torch_dtype)
 
         model = AutoModelForCausalLM.from_pretrained(
             model_id, device_map=device_map, dtype=dtype, trust_remote_code=True
         )
 
-        logger.info("Model loaded successfully!")
-        logger.info(f"Model device: {model.device}")
-        logger.info(f"Model dtype: {model.dtype}")
+        logger.debug("Model loaded successfully!")
+        logger.debug(f"Model device: {model.device}")
+        logger.debug(f"Model dtype: {model.dtype}")
 
         return tokenizer, model
 

@@ -13,42 +13,18 @@ Python 3.10 or newer. A GPU helps but isn't required. Models download automatica
 
 ## Getting Started
 
-### Quick Start (Recommended)
-
 ```bash
 # Create virtual environment
 python3 -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Install dependencies (optimized for speed)
-pip install --prefer-binary --upgrade-strategy only-if-needed -r requirements.txt
-```
-
-### Faster Installation Options
-
-**Option 1: Using uv (Fastest - Recommended)**
-```bash
-# Install uv first: curl -LsSf https://astral.sh/uv/install.sh | sh
-# Then install dependencies:
-uv pip install -r requirements.txt
-```
-
-**Option 2: Using pip with optimizations**
-```bash
-pip install --prefer-binary --upgrade-strategy only-if-needed --cache-dir ~/.cache/pip -r requirements.txt
-```
-
-**Option 3: Using installation script**
-```bash
+# Install
 # Run the optimized installation script
 ./scripts/install.sh
-```
 
-### Development Setup
-
-For contributors who want to run tests:
-```bash
-pip install -r requirements.txt -r requirements-dev.txt
+# or
+# Install dependencies via pip
+pip install --prefer-binary --upgrade-strategy only-if-needed -r requirements.txt
 ```
 
 ## Using It

@@ -154,7 +154,7 @@ class AssistantChatCLI:
 
             logger.debug(f"Enriched conversation {conversation_id}")
         except Exception as e:
-            logger.error(f"Error enriching conversation: {e}", exc_info=True)
+            logger.warning(f"Could not enrich conversation: {e}")
 
     def retrieve_context(self, query: str, top_k: int = 5) -> List[Dict]:
         """
@@ -172,7 +172,7 @@ class AssistantChatCLI:
             logger.debug(f"Retrieved {len(contexts)} relevant contexts")
             return contexts
         except Exception as e:
-            logger.error(f"Error retrieving context: {e}", exc_info=True)
+            logger.warning(f"Could not retrieve context: {e}")
             return []
 
     def reset_history(self):
@@ -485,7 +485,7 @@ I automatically save everything and retrieve relevant context for you.
             return accumulated
 
         except Exception as e:
-            logger.error(f"Streaming error: {e}", exc_info=True)
+            logger.error(f"Streaming error: {e}")
             self.console.print(f"[red]✗ Error during generation: {e}[/red]")
             return ""
 
@@ -569,13 +569,26 @@ def main():
         default=None,
         help=f"Sampling temperature (default: {config.TEMPERATURE})",
     )
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Show detailed technical logs for debugging",
+    )
 
     args = parser.parse_args()
 
-    # Configure logging
+    # Set verbose mode in config
+    config.VERBOSE_MODE = args.verbose
+
+    # Configure logging with Rich handler
+    from rich.logging import RichHandler
+
+    log_level = logging.DEBUG if args.verbose else logging.WARNING
     logging.basicConfig(
-        level=getattr(logging, config.LOG_LEVEL),
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        level=log_level,
+        format="%(message)s",
+        handlers=[RichHandler(rich_tracebacks=True, show_time=False, show_path=False)],
     )
 
     # Override config if specified
@@ -614,7 +627,7 @@ def main():
         sys.exit(0)
 
     except Exception as e:
-        logger.error(f"Failed to start assistant: {e}", exc_info=True)
+        logger.error(f"Failed to start assistant: {e}")
         console.print(f"\n[red]✗ Error: {e}[/red]")
         sys.exit(1)
 

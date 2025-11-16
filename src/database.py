@@ -83,7 +83,7 @@ class AssistantDatabase:
         """)
 
         self.conn.commit()
-        logger.info(f"Database initialized: {self.db_path}")
+        logger.debug(f"Database initialized: {self.db_path}")
 
     def add_conversation(
         self, 
@@ -240,11 +240,9 @@ class AssistantDatabase:
         row = cursor.fetchone()
         if row:
             result = dict(row)
-            # Parse JSON fields
-            if result.get('people'):
-                result['people'] = json.loads(result['people'])
-            if result.get('topics'):
-                result['topics'] = json.loads(result['topics'])
+            # Parse JSON fields, ensuring they're always lists (never None)
+            result['people'] = json.loads(result['people']) if result.get('people') else []
+            result['topics'] = json.loads(result['topics']) if result.get('topics') else []
             return result
         return None
 
@@ -274,10 +272,9 @@ class AssistantDatabase:
         results = []
         for row in rows:
             result = dict(row)
-            if result.get('people'):
-                result['people'] = json.loads(result['people'])
-            if result.get('topics'):
-                result['topics'] = json.loads(result['topics'])
+            # Parse JSON fields, ensuring they're always lists (never None)
+            result['people'] = json.loads(result['people']) if result.get('people') else []
+            result['topics'] = json.loads(result['topics']) if result.get('topics') else []
             results.append(result)
         
         return results
@@ -308,10 +305,9 @@ class AssistantDatabase:
         results = []
         for row in rows:
             result = dict(row)
-            if result.get('people'):
-                result['people'] = json.loads(result['people'])
-            if result.get('topics'):
-                result['topics'] = json.loads(result['topics'])
+            # Parse JSON fields, ensuring they're always lists (never None)
+            result['people'] = json.loads(result['people']) if result.get('people') else []
+            result['topics'] = json.loads(result['topics']) if result.get('topics') else []
             results.append(result)
         
         return results

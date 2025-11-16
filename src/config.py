@@ -34,7 +34,8 @@ class Config:
     DO_SAMPLE: bool = os.getenv("DO_SAMPLE", "true").lower() == "true"
 
     # Logging
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "WARNING")
+    VERBOSE_MODE: bool = False  # Set by command-line flag, shows detailed logs
 
     @classmethod
     def get_device(cls) -> str:

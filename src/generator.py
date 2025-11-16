@@ -130,6 +130,7 @@ class TextGenerator:
         max_new_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
+        do_sample: Optional[bool] = None,
         **kwargs,
     ) -> str:
         """
@@ -141,6 +142,7 @@ class TextGenerator:
             max_new_tokens: Maximum tokens to generate
             temperature: Sampling temperature
             top_p: Nucleus sampling probability
+            do_sample: Whether to use sampling (vs greedy)
             **kwargs: Additional generation parameters
 
         Returns:
@@ -150,6 +152,7 @@ class TextGenerator:
         max_new_tokens = max_new_tokens or config.MAX_NEW_TOKENS
         temperature = temperature if temperature is not None else config.TEMPERATURE
         top_p = top_p if top_p is not None else config.TOP_P
+        do_sample = do_sample if do_sample is not None else config.DO_SAMPLE
 
         # Apply chat template
         text = self.tokenizer.apply_chat_template(
@@ -167,7 +170,7 @@ class TextGenerator:
                 max_new_tokens=max_new_tokens,
                 temperature=temperature,
                 top_p=top_p,
-                do_sample=True,
+                do_sample=do_sample,
                 pad_token_id=self.tokenizer.eos_token_id,
                 **kwargs,
             )
@@ -184,6 +187,7 @@ class TextGenerator:
         max_new_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
+        do_sample: Optional[bool] = None,
         **kwargs,
     ) -> Iterator[str]:
         """
@@ -196,6 +200,7 @@ class TextGenerator:
             max_new_tokens: Maximum tokens to generate
             temperature: Sampling temperature
             top_p: Nucleus sampling probability
+            do_sample: Whether to use sampling (vs greedy)
             **kwargs: Additional generation parameters
 
         Yields:
@@ -209,6 +214,7 @@ class TextGenerator:
         max_new_tokens = max_new_tokens or config.MAX_NEW_TOKENS
         temperature = temperature if temperature is not None else config.TEMPERATURE
         top_p = top_p if top_p is not None else config.TOP_P
+        do_sample = do_sample if do_sample is not None else config.DO_SAMPLE
 
         # Apply chat template
         text = self.tokenizer.apply_chat_template(
@@ -230,7 +236,7 @@ class TextGenerator:
             max_new_tokens=max_new_tokens,
             temperature=temperature,
             top_p=top_p,
-            do_sample=True,
+            do_sample=do_sample,
             pad_token_id=self.tokenizer.eos_token_id,
             **kwargs,
         )

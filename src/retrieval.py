@@ -200,15 +200,15 @@ class ContextRetriever:
             person_lower = person_filter.lower()
             filtered = [
                 conv for conv in filtered
-                if any(person_lower in p.lower() for p in conv.get('people', []))
+                if any(person_lower in p.lower() for p in (conv.get('people') or []))
             ]
-        
+
         # Topic filter
         if topic_filter:
             topic_lower = topic_filter.lower()
             filtered = [
                 conv for conv in filtered
-                if any(topic_lower in t.lower() for t in conv.get('topics', []))
+                if any(topic_lower in t.lower() for t in (conv.get('topics') or []))
             ]
         
         # Time window filter

@@ -279,7 +279,7 @@ class RichChatCLI:
             return accumulated
 
         except Exception as e:
-            logger.error(f"Streaming error: {e}", exc_info=True)
+            logger.error(f"Streaming error: {e}")
             self.console.print(f"[red]✗ Error during generation: {e}[/red]")
             return ""
 
@@ -367,13 +367,26 @@ def main():
         default=".llm_chat_history",
         help="File to store command history (default: .llm_chat_history)",
     )
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Show detailed technical logs for debugging",
+    )
 
     args = parser.parse_args()
 
-    # Configure logging
+    # Set verbose mode in config
+    config.VERBOSE_MODE = args.verbose
+
+    # Configure logging with Rich handler
+    from rich.logging import RichHandler
+
+    log_level = logging.DEBUG if args.verbose else logging.WARNING
     logging.basicConfig(
-        level=getattr(logging, config.LOG_LEVEL),
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        level=log_level,
+        format="%(message)s",
+        handlers=[RichHandler(rich_tracebacks=True, show_time=False, show_path=False)],
     )
 
     # Override config if specified
@@ -418,7 +431,7 @@ def main():
         sys.exit(0)
 
     except Exception as e:
-        logger.error(f"Failed to start chat: {e}", exc_info=True)
+        logger.error(f"Failed to start chat: {e}")
         console.print(f"\n[red]✗ Error: {e}[/red]")
         sys.exit(1)
 

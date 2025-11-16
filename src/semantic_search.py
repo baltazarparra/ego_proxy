@@ -27,9 +27,9 @@ def get_embedding_model():
     if _model is None:
         try:
             from sentence_transformers import SentenceTransformer
-            logger.info("Loading sentence-transformers model (all-MiniLM-L6-v2)...")
+            logger.debug("Loading sentence-transformers model (all-MiniLM-L6-v2)...")
             _model = SentenceTransformer('all-MiniLM-L6-v2')
-            logger.info("Embedding model loaded successfully")
+            logger.debug("Embedding model loaded successfully")
         except ImportError:
             logger.error("sentence-transformers not installed. Install with: pip install sentence-transformers")
             raise
