@@ -1,11 +1,11 @@
 # ✳️ ego_proxy
-Run powerful AI language models on your computer completely offline. No cloud dependencies, no data shared externally. Perfect for chatting with AI while keeping everything private.
+Run powerful AI language models FREE completely offline. No "Big Brother" with your data, stay 100% local.
 
 ## What You Can Do
 
 **Standard Chat:** Chat interactively with AI using a beautiful, feature-rich terminal interface. Ego Proxy provides a modern chat experience with markdown rendering, syntax highlighting, streaming responses, and conversation history.
 
-**Personal Assistant (NEW!):** Transform your chat into an intelligent personal work assistant that remembers everything you tell it. Automatically tracks people, topics, dates, and provides context-aware advice based on your conversation history. Perfect for logging daily work activities and getting intelligent reminders.
+**Personal Assistant (NEW!):** Transform your chat into an intelligent personal work assistant that remembers everything you tell it and interact with your calendar. Automatically tracks people, topics, dates, and provides context-aware advice based on your conversation history. Perfect for logging daily work activities and getting intelligent reminders.
 
 ## What You Need
 

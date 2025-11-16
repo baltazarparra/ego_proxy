@@ -389,3 +389,89 @@ class GoogleCalendarIntegration:
             msg += f"   🔗 {link}"
 
         return msg
+
+    def get_upcoming_events(self, hours: int = 48) -> list:
+        """
+        Get upcoming events in the next N hours.
+
+        Args:
+            hours: Number of hours to look ahead (default 48)
+
+        Returns:
+            List of event dictionaries with summary, start, end, link
+        """
+        if not self.is_authenticated():
+            logger.warning("Not authenticated. Cannot fetch upcoming events.")
+            return []
+
+        try:
+            # Calculate time range
+            now = datetime.utcnow()
+            time_max = now + timedelta(hours=hours)
+
+            # Format times for API
+            time_min = now.isoformat() + "Z"
+            time_max = time_max.isoformat() + "Z"
+
+            # Call Calendar API
+            events_result = (
+                self.service.events()
+                .list(
+                    calendarId="primary",
+                    timeMin=time_min,
+                    timeMax=time_max,
+                    maxResults=10,
+                    singleEvents=True,
+                    orderBy="startTime",
+                )
+                .execute()
+            )
+
+            events = events_result.get("items", [])
+            logger.info(f"Found {len(events)} upcoming events in next {hours} hours")
+
+            return events
+
+        except HttpError as error:
+            logger.error(f"Error fetching upcoming events: {error}")
+            return []
+        except Exception as e:
+            logger.error(f"Unexpected error fetching events: {e}")
+            return []
+
+    def format_upcoming_events(self, events: list) -> str:
+        """
+        Format upcoming events into a user-friendly display.
+
+        Args:
+            events: List of event dictionaries from Calendar API
+
+        Returns:
+            Formatted string of events
+        """
+        if not events:
+            return ""
+
+        lines = []
+        now = datetime.now()
+
+        for event in events:
+            summary = event.get("summary", "Untitled Event")
+            start = event.get("start", {}).get("dateTime")
+
+            if start:
+                # Parse the datetime
+                event_dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
+                event_dt = event_dt.astimezone()  # Convert to local timezone
+
+                # Format relative time
+                if event_dt.date() == now.date():
+                    time_str = f"Today at {event_dt.strftime('%I:%M %p')}"
+                elif event_dt.date() == (now + timedelta(days=1)).date():
+                    time_str = f"Tomorrow at {event_dt.strftime('%I:%M %p')}"
+                else:
+                    time_str = event_dt.strftime("%A at %I:%M %p")
+
+                lines.append(f"  • {time_str} - {summary}")
+
+        return "\n".join(lines)

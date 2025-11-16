@@ -89,6 +89,22 @@ class AssistantChatCLI:
             # Try to authenticate (will use cached tokens if available)
             if self.calendar.authenticate():
                 self.console.print("[green]📅 Google Calendar connected[/green]")
+
+                # Check for upcoming events in next 48 hours
+                upcoming_events = self.calendar.get_upcoming_events(hours=48)
+                if upcoming_events:
+                    formatted_events = self.calendar.format_upcoming_events(
+                        upcoming_events
+                    )
+                    self.console.print(
+                        Panel(
+                            f"📅 Upcoming Events (Next 48 Hours)\n\n{formatted_events}",
+                            title="[bold cyan]Your Schedule[/bold cyan]",
+                            border_style="cyan",
+                            padding=(1, 2),
+                        )
+                    )
+                    self.console.print()
             else:
                 self.console.print(
                     "[yellow]📅 Google Calendar not configured (use GOOGLE_CALENDAR_SETUP.md)[/yellow]"
@@ -602,6 +618,7 @@ I automatically save everything and retrieve relevant context for you.
 
                 # Check for calendar intent before processing
                 calendar_event = None
+                calendar_created = False
                 if self.calendar:
                     calendar_event = self.extractor.detect_calendar_intent(user_input)
                     if calendar_event:
@@ -615,6 +632,7 @@ I automatically save everything and retrieve relevant context for you.
                         )
 
                         if created_event:
+                            calendar_created = True
                             # Show confirmation
                             confirmation = self.calendar.format_event_confirmation(
                                 created_event
@@ -627,6 +645,12 @@ I automatically save everything and retrieve relevant context for you.
                                 )
                             )
                             self.console.print()
+
+                            # Skip normal response - just save and continue
+                            user_conv_id = self.save_conversation("user", user_input)
+                            self.add_message("user", user_input)
+                            self.print_ready_indicator()
+                            continue
 
                 # Save user message to database
                 user_conv_id = self.save_conversation("user", user_input)
