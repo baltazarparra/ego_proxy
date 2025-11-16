@@ -1,4 +1,4 @@
-# ego_proxy
+# ✳️ ego_proxy
 Run powerful AI language models on your computer completely offline. No cloud dependencies, no data shared externally. Perfect for chatting with AI while keeping everything private.
 
 ## What You Can Do

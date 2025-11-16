@@ -10,7 +10,7 @@ import logging
 import sys
 import threading
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from prompt_toolkit import PromptSession
@@ -28,6 +28,7 @@ from .config import config
 from .database import AssistantDatabase
 from .enrichment import MetadataExtractor
 from .generator import TextGenerator
+from .google_calendar import GoogleCalendarIntegration
 from .model_loader import get_model_info, load_tokenizer_and_model
 from .prompts import (
     ASSISTANT_SYSTEM_PROMPT,
@@ -80,6 +81,22 @@ class AssistantChatCLI:
 
         # Context retriever
         self.retriever = ContextRetriever(self.db)
+
+        # Google Calendar integration
+        self.calendar = None
+        try:
+            self.calendar = GoogleCalendarIntegration(self.db.conn)
+            # Try to authenticate (will use cached tokens if available)
+            if self.calendar.authenticate():
+                self.console.print("[green]📅 Google Calendar connected[/green]")
+            else:
+                self.console.print(
+                    "[yellow]📅 Google Calendar not configured (use GOOGLE_CALENDAR_SETUP.md)[/yellow]"
+                )
+                self.calendar = None
+        except Exception as e:
+            logger.debug(f"Calendar integration not available: {e}")
+            self.calendar = None
 
         # Prompt Toolkit session
         kb = KeyBindings()
@@ -162,7 +179,7 @@ class AssistantChatCLI:
         user_conv_id: int,
         user_message: str,
         assistant_conv_id: int,
-        assistant_message: str
+        assistant_message: str,
     ):
         """
         Enrich both user and assistant messages in background thread.
@@ -214,7 +231,7 @@ class AssistantChatCLI:
 
 **Model**: {config.MODEL_ID}
 **Device**: {config.get_device()}
-**Memory**: {stats['total_conversations']} conversations stored
+**Memory**: {stats["total_conversations"]} conversations stored
 
 I'm your personal work assistant. I remember everything you tell me and can:
 - Recall past conversations and context
@@ -296,7 +313,9 @@ I automatically save everything and retrieve relevant context for you.
         args = parts[1] if len(parts) > 1 else None
 
         if cmd in ["/exit", "/quit", "/q"]:
-            self.console.print("\n[yellow]👋 Goodbye! Your memory has been saved.[/yellow]\n")
+            self.console.print(
+                "\n[yellow]👋 Goodbye! Your memory has been saved.[/yellow]\n"
+            )
             return True
 
         elif cmd in ["/reset", "/clear"]:
@@ -391,7 +410,9 @@ I automatically save everything and retrieve relevant context for you.
         people = self.db.get_all_people()
 
         if people:
-            table = Table(title="People Mentioned", show_header=True, header_style="bold magenta")
+            table = Table(
+                title="People Mentioned", show_header=True, header_style="bold magenta"
+            )
             table.add_column("Name", style="cyan")
 
             for person in people:
@@ -408,7 +429,9 @@ I automatically save everything and retrieve relevant context for you.
         topics = self.db.get_all_topics()
 
         if topics:
-            table = Table(title="Topics Discussed", show_header=True, header_style="bold magenta")
+            table = Table(
+                title="Topics Discussed", show_header=True, header_style="bold magenta"
+            )
             table.add_column("Topic", style="cyan")
 
             for topic in topics:
@@ -541,16 +564,15 @@ I automatically save everything and retrieve relevant context for you.
     def print_ready_indicator(self):
         """Display ready indicator showing assistant is waiting for input."""
         from rich.rule import Rule
+
         # Ensure clean separation from previous output
         self.console.print()
         self.console.print(
-            Rule(
-                "[dim green]Ready[/dim green]",
-                style="dim green",
-                characters="·"
-            )
+            Rule("[dim green]Ready[/dim green]", style="dim green", characters="·")
         )
-        self.console.print("[dim]Type your message and press Meta+Enter (ESC+Enter) or Alt+Enter to send[/dim]")
+        self.console.print(
+            "[dim]Type your message and press Meta+Enter (ESC+Enter) or Alt+Enter to send[/dim]"
+        )
         self.console.print()
 
     def run(self):
@@ -561,7 +583,10 @@ I automatically save everything and retrieve relevant context for you.
             try:
                 # Get user input with styled prompt
                 from prompt_toolkit.formatted_text import HTML
-                prompt_text = HTML('<ansiblue><b>You</b></ansiblue> <ansicyan>➜</ansicyan> ')
+
+                prompt_text = HTML(
+                    "<ansiblue><b>You</b></ansiblue> <ansicyan>➜</ansicyan> "
+                )
                 user_input = self.session.prompt(prompt_text, multiline=True).strip()
 
                 # Skip empty input
@@ -574,6 +599,34 @@ I automatically save everything and retrieve relevant context for you.
                     if should_exit:
                         break
                     continue
+
+                # Check for calendar intent before processing
+                calendar_event = None
+                if self.calendar:
+                    calendar_event = self.extractor.detect_calendar_intent(user_input)
+                    if calendar_event:
+                        # Create calendar event
+                        created_event = self.calendar.create_event(
+                            summary=calendar_event["summary"],
+                            start_time=calendar_event["datetime"],
+                            end_time=calendar_event["datetime"]
+                            + timedelta(hours=calendar_event["duration_hours"]),
+                            description=calendar_event.get("description"),
+                        )
+
+                        if created_event:
+                            # Show confirmation
+                            confirmation = self.calendar.format_event_confirmation(
+                                created_event
+                            )
+                            self.console.print(
+                                Panel(
+                                    confirmation,
+                                    title="[bold green]Calendar Event Created[/bold green]",
+                                    border_style="green",
+                                )
+                            )
+                            self.console.print()
 
                 # Save user message to database
                 user_conv_id = self.save_conversation("user", user_input)
@@ -599,7 +652,7 @@ I automatically save everything and retrieve relevant context for you.
                     enrichment_thread = threading.Thread(
                         target=self._enrich_messages_background,
                         args=(user_conv_id, user_input, assistant_conv_id, response),
-                        daemon=True
+                        daemon=True,
                     )
                     enrichment_thread.start()
                 else:
@@ -613,7 +666,9 @@ I automatically save everything and retrieve relevant context for you.
                 continue
 
             except EOFError:
-                self.console.print("\n[yellow]👋 Goodbye! Your memory has been saved.[/yellow]\n")
+                self.console.print(
+                    "\n[yellow]👋 Goodbye! Your memory has been saved.[/yellow]\n"
+                )
                 break
 
 
@@ -675,7 +730,9 @@ def main():
 
     try:
         # Load model and tokenizer
-        with console.status("[cyan]Loading model...", spinner="dots", spinner_style="cyan"):
+        with console.status(
+            "[cyan]Loading model...", spinner="dots", spinner_style="cyan"
+        ):
             tokenizer, model = load_tokenizer_and_model(model_id=args.model)
 
         # Print model info
@@ -708,4 +765,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -35,6 +35,13 @@ prompt-toolkit>=3.0.0
 sentence-transformers>=2.2.0  # Semantic embeddings (small, efficient)
 numpy>=1.24.0                 # Vector operations
 
+# Google Calendar Integration
+google-auth-oauthlib>=1.2.0   # OAuth2 flow for Google Calendar
+google-auth-httplib2>=0.2.0   # HTTP transport for Google APIs
+google-api-python-client>=2.100.0  # Google Calendar API client
+cryptography>=41.0.0          # Token encryption
+python-dateutil>=2.8.2        # Natural language date parsing
+
 # Optional: Quantization and optimization
 # bitsandbytes>=0.41.0  # Uncomment for 4-bit/8-bit quantization
 # safetensors>=0.4.0    # Uncomment for safer model serialization

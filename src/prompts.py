@@ -7,7 +7,6 @@ and metadata extraction.
 
 from typing import Dict, List
 
-
 # Assistant system prompt
 ASSISTANT_SYSTEM_PROMPT = """You are a highly capable personal work assistant with perfect memory. Your role is to:
 
@@ -38,6 +37,8 @@ ASSISTANT_SYSTEM_PROMPT = """You are a highly capable personal work assistant wi
 6. **Understand Context**: Use past interactions to understand patterns, relationships, and situations better.
 
 7. **Be Concise**: Provide helpful, actionable advice without unnecessary elaboration unless asked.
+
+8. **Calendar Integration**: You have access to Google Calendar. When users say phrases like "add to my calendar", "schedule", or "add to my agenda", a calendar event will be automatically created for them. Simply acknowledge the event creation naturally in your response.
 
 When responding:
 - Reference past conversations naturally (e.g., "Last time you mentioned Matthew was feeling down...")
@@ -105,7 +106,9 @@ def create_extraction_prompt(message: str) -> str:
 Return only valid JSON with fields: people, topics, dates_mentioned, sentiment, category."""
 
 
-def create_context_injection_prompt(retrieved_contexts: List[Dict], current_query: str) -> str:
+def create_context_injection_prompt(
+    retrieved_contexts: List[Dict], current_query: str
+) -> str:
     """
     Create a prompt that injects retrieved context into the conversation.
 
@@ -118,31 +121,32 @@ def create_context_injection_prompt(retrieved_contexts: List[Dict], current_quer
     """
     if not retrieved_contexts:
         return current_query
-    
+
     context_parts = []
     context_parts.append("Based on your conversation history:\n")
-    
+
     for i, ctx in enumerate(retrieved_contexts[:5], 1):  # Limit to top 5
-        timestamp = ctx.get('timestamp', 'Unknown time')
-        role = ctx.get('role', 'unknown')
-        content = ctx.get('content', '')
-        people = ctx.get('people', [])
-        topics = ctx.get('topics', [])
-        sentiment = ctx.get('sentiment', '')
-        
+        timestamp = ctx.get("timestamp", "Unknown time")
+        role = ctx.get("role", "unknown")
+        content = ctx.get("content", "")
+        people = ctx.get("people", [])
+        topics = ctx.get("topics", [])
+        sentiment = ctx.get("sentiment", "")
+
         # Format timestamp if it's a datetime string
-        if timestamp and timestamp != 'Unknown time':
+        if timestamp and timestamp != "Unknown time":
             try:
                 from datetime import datetime
-                dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-                timestamp = dt.strftime('%Y-%m-%d %H:%M')
+
+                dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+                timestamp = dt.strftime("%Y-%m-%d %H:%M")
             except:
                 pass
-        
+
         context_str = f"[{timestamp}] {role}: {content[:200]}"
         if len(content) > 200:
             context_str += "..."
-        
+
         metadata_parts = []
         if people:
             metadata_parts.append(f"People: {', '.join(people)}")
@@ -150,15 +154,15 @@ def create_context_injection_prompt(retrieved_contexts: List[Dict], current_quer
             metadata_parts.append(f"Topics: {', '.join(topics)}")
         if sentiment:
             metadata_parts.append(f"Sentiment: {sentiment}")
-        
+
         if metadata_parts:
             context_str += f"\n  ({'; '.join(metadata_parts)})"
-        
+
         context_parts.append(f"\n{i}. {context_str}")
-    
+
     context_parts.append("\n\n---\n")
     context_parts.append(f"Current question: {current_query}")
-    
+
     return "".join(context_parts)
 
 
@@ -175,28 +179,29 @@ def create_timeline_summary(conversations: List[Dict], person: str = None) -> st
     """
     if not conversations:
         return "No conversations found."
-    
+
     title = f"Timeline for {person}" if person else "Conversation Timeline"
     lines = [f"# {title}\n"]
-    
+
     for conv in conversations:
-        timestamp = conv.get('timestamp', 'Unknown')
-        role = conv.get('role', 'unknown')
-        content = conv.get('content', '')
-        people = conv.get('people', [])
-        topics = conv.get('topics', [])
-        
+        timestamp = conv.get("timestamp", "Unknown")
+        role = conv.get("role", "unknown")
+        content = conv.get("content", "")
+        people = conv.get("people", [])
+        topics = conv.get("topics", [])
+
         # Format timestamp
         try:
             from datetime import datetime
-            dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-            timestamp = dt.strftime('%Y-%m-%d %H:%M')
+
+            dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+            timestamp = dt.strftime("%Y-%m-%d %H:%M")
         except:
             pass
-        
+
         lines.append(f"\n## [{timestamp}] {role.title()}")
         lines.append(f"\n{content}\n")
-        
+
         if people or topics:
             metadata = []
             if people:
@@ -204,9 +209,9 @@ def create_timeline_summary(conversations: List[Dict], person: str = None) -> st
             if topics:
                 metadata.append(f"**Topics**: {', '.join(topics)}")
             lines.append("  " + " | ".join(metadata) + "\n")
-        
+
         lines.append("---")
-    
+
     return "\n".join(lines)
 
 
@@ -223,36 +228,37 @@ def create_search_results_summary(results: List[Dict], query: str) -> str:
     """
     if not results:
         return f"No results found for: {query}"
-    
+
     lines = [f"# Search Results for: {query}\n"]
     lines.append(f"Found {len(results)} result(s)\n")
-    
+
     for i, result in enumerate(results, 1):
-        timestamp = result.get('timestamp', 'Unknown')
-        content = result.get('content', '')
-        people = result.get('people', [])
-        topics = result.get('topics', [])
-        similarity = result.get('similarity', 0)
-        
+        timestamp = result.get("timestamp", "Unknown")
+        content = result.get("content", "")
+        people = result.get("people", [])
+        topics = result.get("topics", [])
+        similarity = result.get("similarity", 0)
+
         # Format timestamp
         try:
             from datetime import datetime
-            dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-            timestamp = dt.strftime('%Y-%m-%d %H:%M')
+
+            dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+            timestamp = dt.strftime("%Y-%m-%d %H:%M")
         except:
             pass
-        
+
         lines.append(f"\n## {i}. [{timestamp}]")
         if similarity > 0:
             lines.append(f" (Similarity: {similarity:.2%})")
         lines.append("\n")
-        
+
         # Show first 300 chars of content
         display_content = content[:300]
         if len(content) > 300:
             display_content += "..."
         lines.append(f"{display_content}\n")
-        
+
         if people or topics:
             metadata = []
             if people:
@@ -260,7 +266,7 @@ def create_search_results_summary(results: List[Dict], query: str) -> str:
             if topics:
                 metadata.append(f"**Topics**: {', '.join(topics)}")
             lines.append("  " + " | ".join(metadata) + "\n")
-    
+
     return "\n".join(lines)
 
 
@@ -275,34 +281,35 @@ def create_stats_summary(stats: Dict) -> str:
         Formatted statistics text
     """
     lines = ["# Personal Assistant Memory Statistics\n"]
-    
+
     lines.append(f"**Total Conversations**: {stats.get('total_conversations', 0)}")
     lines.append(f"**Your Messages**: {stats.get('user_messages', 0)}")
     lines.append(f"**Assistant Responses**: {stats.get('assistant_messages', 0)}")
     lines.append(f"**Stored Embeddings**: {stats.get('embeddings_count', 0)}")
     lines.append(f"**Unique People Mentioned**: {stats.get('unique_people', 0)}")
     lines.append(f"**Unique Topics Discussed**: {stats.get('unique_topics', 0)}\n")
-    
-    first = stats.get('first_conversation')
-    last = stats.get('last_conversation')
-    
+
+    first = stats.get("first_conversation")
+    last = stats.get("last_conversation")
+
     if first:
         try:
             from datetime import datetime
-            dt = datetime.fromisoformat(first.replace('Z', '+00:00'))
-            first = dt.strftime('%Y-%m-%d %H:%M')
+
+            dt = datetime.fromisoformat(first.replace("Z", "+00:00"))
+            first = dt.strftime("%Y-%m-%d %H:%M")
         except:
             pass
         lines.append(f"**First Conversation**: {first}")
-    
+
     if last:
         try:
             from datetime import datetime
-            dt = datetime.fromisoformat(last.replace('Z', '+00:00'))
-            last = dt.strftime('%Y-%m-%d %H:%M')
+
+            dt = datetime.fromisoformat(last.replace("Z", "+00:00"))
+            last = dt.strftime("%Y-%m-%d %H:%M")
         except:
             pass
         lines.append(f"**Last Conversation**: {last}")
-    
-    return "\n".join(lines)
 
+    return "\n".join(lines)
