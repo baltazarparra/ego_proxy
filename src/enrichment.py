@@ -9,7 +9,6 @@ import json
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
 
 import dateutil.tz
 from dateutil import parser as dateparser
@@ -173,7 +172,7 @@ class MetadataExtractor:
             "category": "general",
         }
 
-    def detect_calendar_intent(self, message: str) -> Optional[Dict]:
+    def detect_calendar_intent(self, message: str) -> Dict | None:
         """
         Detect if message contains a calendar-related request.
 
@@ -187,12 +186,40 @@ class MetadataExtractor:
                 'summary': str,
                 'datetime': datetime,
                 'duration_hours': float,
-                'description': Optional[str]
+                'description': str | None
             }
         """
         message_lower = message.lower().strip()
 
-        # Calendar intent trigger phrases
+        # Past event indicators - if present, likely not a calendar request
+        past_indicators = [
+            "yesterday",
+            "last week",
+            "last month",
+            "last year",
+            "ago",
+            "had a",
+            "had an",
+            "attended",
+            "went to",
+            "was at",
+            "were at",
+            "completed",
+            "finished",
+            "did a",
+            "did an",
+        ]
+
+        # Check for past event indicators
+        has_past_indicators = any(
+            indicator in message_lower for indicator in past_indicators
+        )
+
+        if has_past_indicators:
+            logger.debug(f"Past event indicators detected, skipping calendar: {message[:50]}...")
+            return None
+
+        # Calendar intent trigger phrases - require explicit action verbs
         calendar_triggers = [
             "add to my calendar",
             "add on my calendar",
@@ -236,14 +263,21 @@ class MetadataExtractor:
             calendar_prompt = f"""Extract calendar event details from this message:
 "{message}"
 
+IMPORTANT: Only extract events if the user is requesting to CREATE A NEW FUTURE EVENT.
+If the user is mentioning past events or recalling history, respond with: {{"is_future_request": false}}
+
 Respond with JSON containing:
-- summary: Brief event title (required)
-- datetime_description: When the event should happen (e.g., "tomorrow at 3pm", "next Monday at 10am")
+- is_future_request: true if requesting to create a NEW FUTURE event, false if mentioning past events (required)
+- summary: Brief event title (required if is_future_request=true)
+- datetime_description: When the FUTURE event should happen (e.g., "tomorrow at 3pm", "next Monday at 10am")
 - duration_hours: Event duration in hours (default 1.0)
 - description: Optional additional details
 
-Example response:
-{{"summary": "Meeting with John", "datetime_description": "tomorrow at 3pm", "duration_hours": 1.0, "description": null}}
+Example for future event request:
+{{"is_future_request": true, "summary": "Meeting with John", "datetime_description": "tomorrow at 3pm", "duration_hours": 1.0, "description": null}}
+
+Example for past event mention:
+{{"is_future_request": false}}
 
 JSON response:"""
 
@@ -263,6 +297,11 @@ JSON response:"""
             event_data = self._parse_json_response(response)
             logger.debug(f"Extracted event data: {event_data}")
 
+            # Check if this is a future event request
+            if not event_data.get("is_future_request", False):
+                logger.info("LLM determined this is not a future event request (likely past event mention)")
+                return None
+
             if not event_data or "summary" not in event_data:
                 logger.warning(
                     f"Could not extract event summary from message. Raw response: {response[:200]}"
@@ -276,6 +315,12 @@ JSON response:"""
 
             if not parsed_datetime:
                 logger.warning(f"Could not parse datetime: {datetime_desc}")
+                return None
+
+            # Validate that the datetime is in the future
+            now = datetime.now(dateutil.tz.tzlocal())
+            if parsed_datetime <= now:
+                logger.info(f"Parsed datetime {parsed_datetime} is in the past, ignoring calendar request")
                 return None
 
             logger.info(
@@ -293,7 +338,7 @@ JSON response:"""
             logger.error(f"Error detecting calendar intent: {e}", exc_info=True)
             return None
 
-    def _parse_natural_datetime(self, datetime_str: str) -> Optional[datetime]:
+    def _parse_natural_datetime(self, datetime_str: str) -> datetime | None:
         """
         Parse natural language datetime string to datetime object.
 
@@ -532,7 +577,7 @@ JSON response:"""
         return metadata
 
 
-def extract_metadata_batch(generator: TextGenerator, messages: List[str]) -> List[Dict]:
+def extract_metadata_batch(generator: TextGenerator, messages: list[str]) -> list[Dict]:
     """
     Extract metadata from multiple messages.
 

@@ -7,7 +7,6 @@ to retrieve the most relevant past conversations.
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
 
 from .database import AssistantDatabase
 from .semantic_search import generate_embedding, embedding_to_bytes, search_conversations
@@ -33,10 +32,10 @@ class ContextRetriever:
         top_k: int = 5,
         min_similarity: float = 0.3,
         time_decay: bool = True,
-        time_window_days: Optional[int] = None,
-        person_filter: Optional[str] = None,
-        topic_filter: Optional[str] = None
-    ) -> List[Dict]:
+        time_window_days: int | None = None,
+        person_filter: str | None = None,
+        topic_filter: str | None = None
+    ) -> list[Dict]:
         """
         Retrieve relevant context for a query using multiple strategies.
 
@@ -96,7 +95,7 @@ class ContextRetriever:
         # Return top k results
         return conversations[:top_k]
 
-    def retrieve_by_person(self, person: str, limit: int = 10) -> List[Dict]:
+    def retrieve_by_person(self, person: str, limit: int = 10) -> list[Dict]:
         """
         Retrieve all conversations mentioning a specific person.
 
@@ -111,7 +110,7 @@ class ContextRetriever:
         logger.debug(f"Found {len(results)} conversations mentioning {person}")
         return results
 
-    def retrieve_by_topic(self, topic: str, limit: int = 10) -> List[Dict]:
+    def retrieve_by_topic(self, topic: str, limit: int = 10) -> list[Dict]:
         """
         Retrieve conversations about a specific topic.
 
@@ -126,7 +125,7 @@ class ContextRetriever:
         logger.debug(f"Found {len(results)} conversations about {topic}")
         return results
 
-    def retrieve_recent(self, days: int = 7, limit: int = 20) -> List[Dict]:
+    def retrieve_recent(self, days: int = 7, limit: int = 20) -> list[Dict]:
         """
         Retrieve recent conversations within a time window.
 
@@ -151,9 +150,9 @@ class ContextRetriever:
 
     def retrieve_timeline(
         self,
-        person: Optional[str] = None,
+        person: str | None = None,
         limit: int = 50
-    ) -> List[Dict]:
+    ) -> list[Dict]:
         """
         Retrieve chronological timeline of conversations.
 
@@ -176,11 +175,11 @@ class ContextRetriever:
 
     def _apply_filters(
         self,
-        conversations: List[Dict],
-        person_filter: Optional[str] = None,
-        topic_filter: Optional[str] = None,
-        time_window_days: Optional[int] = None
-    ) -> List[Dict]:
+        conversations: list[Dict],
+        person_filter: str | None = None,
+        topic_filter: str | None = None,
+        time_window_days: int | None = None
+    ) -> list[Dict]:
         """
         Apply filters to conversation results.
 
@@ -224,9 +223,9 @@ class ContextRetriever:
 
     def _rerank_results(
         self,
-        conversations: List[Dict],
+        conversations: list[Dict],
         apply_time_decay: bool = True
-    ) -> List[Dict]:
+    ) -> list[Dict]:
         """
         Re-rank results using combined scoring.
 
@@ -266,7 +265,7 @@ class ContextRetriever:
         
         return conversations
 
-    def _parse_timestamp(self, timestamp_str: Optional[str]) -> Optional[datetime]:
+    def _parse_timestamp(self, timestamp_str: str | None) -> datetime | None:
         """
         Parse timestamp string to datetime object.
 
@@ -290,7 +289,7 @@ class ContextRetriever:
                 logger.warning(f"Could not parse timestamp: {timestamp_str}")
                 return None
 
-    def parse_natural_time_filter(self, query: str) -> Optional[int]:
+    def parse_natural_time_filter(self, query: str) -> int | None:
         """
         Parse natural language time references into days.
 
@@ -333,7 +332,7 @@ class ContextRetriever:
         
         return None
 
-    def smart_retrieve(self, query: str, top_k: int = 5) -> List[Dict]:
+    def smart_retrieve(self, query: str, top_k: int = 5) -> list[Dict]:
         """
         Intelligently retrieve context with automatic filter detection.
 

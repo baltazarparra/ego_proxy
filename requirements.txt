@@ -1,5 +1,5 @@
 # Core runtime dependencies for ego_proxy
-# Python 3.10+ required
+# Python 3.10+ required (tested with Python 3.14)
 #
 # Installation Tips for Faster Setup:
 # - Use pip with --prefer-binary flag: pip install --prefer-binary -r requirements.txt

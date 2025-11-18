@@ -13,7 +13,7 @@ import time
 import webbrowser
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from cryptography.fernet import Fernet
 from google.auth.transport.requests import Request
@@ -150,7 +150,7 @@ class GoogleCalendarIntegration:
     and event creation capabilities.
     """
 
-    def __init__(self, database_connection, credentials_path: Optional[str] = None):
+    def __init__(self, database_connection, credentials_path: str | None = None):
         """
         Initialize Google Calendar integration.
 
@@ -162,7 +162,7 @@ class GoogleCalendarIntegration:
         self.credentials_path = credentials_path or os.getenv(
             "GOOGLE_CREDENTIALS_PATH", "credentials.json"
         )
-        self.creds: Optional[Credentials] = None
+        self.creds: Credentials | None = None
         self.circuit_breaker = CircuitBreaker(failure_threshold=5, timeout=60)
         self.service = None
         self._encryption_key = self._get_or_create_encryption_key()
@@ -196,7 +196,7 @@ class GoogleCalendarIntegration:
         f = Fernet(self._encryption_key)
         return f.decrypt(encrypted_data.encode()).decode()
 
-    def _load_credentials_from_db(self) -> Optional[Credentials]:
+    def _load_credentials_from_db(self) -> Credentials | None:
         """
         Load OAuth credentials from database.
 
@@ -362,11 +362,11 @@ class GoogleCalendarIntegration:
         self,
         summary: str,
         start_time: datetime,
-        end_time: Optional[datetime] = None,
-        description: Optional[str] = None,
-        location: Optional[str] = None,
-        attendees: Optional[list] = None,
-    ) -> Optional[Dict[str, Any]]:
+        end_time: datetime | None = None,
+        description: str | None = None,
+        location: str | None = None,
+        attendees: list | None = None,
+    ) -> dict[str, Any | None]:
         """
         Create a calendar event.
 
@@ -432,7 +432,7 @@ class GoogleCalendarIntegration:
             logger.error(f"Unexpected error creating event: {e}")
             return None
 
-    def format_event_confirmation(self, event: Dict[str, Any]) -> str:
+    def format_event_confirmation(self, event: dict[str, Any]) -> str:
         """
         Format event data into a user-friendly confirmation message.
 

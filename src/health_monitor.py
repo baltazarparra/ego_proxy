@@ -14,7 +14,6 @@ import os
 import threading
 import time
 from pathlib import Path
-from typing import Dict, Optional
 
 import psutil
 
@@ -36,7 +35,7 @@ class HealthMonitor:
         self.check_interval = check_interval
         self.process = psutil.Process()
         self._monitoring = False
-        self._monitor_thread: Optional[threading.Thread] = None
+        self._monitor_thread: threading.Thread | None = None
         self.last_check_time = None
         self.metrics_history = []
         self.max_history = 288  # 24 hours of 5-minute intervals

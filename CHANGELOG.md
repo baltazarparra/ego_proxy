@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Python 3.14 Support**
+  - Verified compatibility with Python 3.14.0
+  - Modernized type hints to use Python 3.10+ syntax (PEP 604)
+  - Updated dependency versions (PyTorch 2.9.1, NumPy 2.3.5, transformers 4.57.1)
+  - All tests passing on Python 3.14
+
 - **Google Calendar Integration**
   - OAuth2 authentication with encrypted token storage
   - Natural language event creation ("schedule meeting tomorrow at 3pm")

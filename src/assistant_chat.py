@@ -14,7 +14,6 @@ import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -56,7 +55,7 @@ class AssistantChatCLI:
         db_path: str = "assistant_memory.db",
         max_history: int = 50,
         history_file: str = ".assistant_chat_history",
-        session_id: Optional[str] = None,
+        session_id: str | None = None,
     ):
         """
         Initialize the assistant chat interface.
@@ -70,8 +69,11 @@ class AssistantChatCLI:
         """
         self.generator = generator
         self.max_history = max_history
-        self.history: List[Dict[str, str]] = []
+        self.history: list[dict[str, str]] = []
         self.session_id = session_id or str(uuid.uuid4())
+
+        # Shutdown flag for graceful exit
+        self._shutdown_requested = False
 
         # Rich console for beautiful output
         self.console = Console()
@@ -255,6 +257,11 @@ class AssistantChatCLI:
         """
         import time
 
+        # Skip enrichment if shutdown is in progress
+        if self._shutdown_requested:
+            logger.debug("Skipping enrichment due to shutdown")
+            return
+
         # Retry with exponential backoff for database lock contention
         max_retries = 3
         base_delay = 0.5  # seconds
@@ -267,17 +274,25 @@ class AssistantChatCLI:
                 )
                 return  # Success, exit
             except Exception as e:
-                if "database is locked" in str(e) and attempt < max_retries - 1:
-                    delay = base_delay * (2**attempt)  # Exponential backoff
-                    logger.debug(
-                        f"Database locked, retrying in {delay}s (attempt {attempt + 1}/{max_retries})"
-                    )
-                    time.sleep(delay)
+                if "database is locked" in str(e):
+                    if self._shutdown_requested:
+                        # During shutdown, database locks are expected - suppress warning
+                        logger.debug(f"Database locked during shutdown (attempt {attempt + 1})")
+                        return
+                    elif attempt < max_retries - 1:
+                        delay = base_delay * (2**attempt)  # Exponential backoff
+                        logger.debug(
+                            f"Database locked, retrying in {delay}s (attempt {attempt + 1}/{max_retries})"
+                        )
+                        time.sleep(delay)
+                    else:
+                        logger.warning(f"Could not enrich conversation: database is locked")
+                        return
                 else:
                     logger.warning(f"Background enrichment failed: {e}")
                     return
 
-    def retrieve_context(self, query: str, top_k: int = 5) -> List[Dict]:
+    def retrieve_context(self, query: str, top_k: int = 5) -> list[Dict]:
         """
         Retrieve relevant context for a query.
 
@@ -460,7 +475,7 @@ I automatically save everything and retrieve relevant context for you.
 
         self.console.print()
 
-    def _handle_timeline(self, person: Optional[str]):
+    def _handle_timeline(self, person: str | None):
         """Handle timeline command."""
         if person:
             self.console.print(f"[cyan]Timeline for: {person}[/cyan]\n")
@@ -671,6 +686,9 @@ I automatically save everything and retrieve relevant context for you.
         """Cleanup resources on exit."""
         logger.info("Cleaning up resources...")
 
+        # Set shutdown flag to prevent new enrichment tasks
+        self._shutdown_requested = True
+
         # Stop health monitoring
         if hasattr(self, "health_monitor"):
             self.health_monitor.stop_monitoring()
@@ -679,16 +697,26 @@ I automatically save everything and retrieve relevant context for you.
             if summary:
                 logger.info(f"Session health summary: {summary}")
 
-        # Shutdown thread pool and wait for pending tasks
+        # Shutdown thread pool with timeout to prevent hanging
         if hasattr(self, "enrichment_executor"):
             logger.info("Waiting for enrichment tasks to complete...")
-            self.enrichment_executor.shutdown(wait=True)
-            logger.info("Enrichment tasks completed")
+            try:
+                # Wait up to 10 seconds for in-flight enrichment to complete
+                self.enrichment_executor.shutdown(wait=True, timeout=10.0)
+                logger.info("Enrichment tasks completed")
+            except TimeoutError:
+                logger.warning("Enrichment tasks did not complete in time, forcing shutdown")
+                self.enrichment_executor.shutdown(wait=False)
 
-        # Close database connection
+        # Close database connection AFTER enrichment threads have stopped
         if hasattr(self, "db"):
-            self.db.close()
-            logger.info("Database closed")
+            try:
+                self.db.close()
+                logger.info("Database closed")
+            except Exception as e:
+                # Suppress database lock errors during shutdown - they're expected
+                if "database is locked" not in str(e).lower():
+                    logger.error(f"Error closing database: {e}")
 
     def run(self):
         """Start the interactive assistant chat loop."""
@@ -886,8 +914,10 @@ def main():
         """Handle SIGTERM and SIGINT for graceful shutdown."""
         console.print("\n[yellow]⚠ Shutting down gracefully...[/yellow]")
         if assistant:
+            assistant._shutdown_requested = True
             assistant._cleanup()
-        sys.exit(0)
+        # Don't call sys.exit(0) here - it causes threading exceptions
+        # Let the program exit naturally after cleanup
 
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)

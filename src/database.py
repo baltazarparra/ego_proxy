@@ -12,7 +12,6 @@ import threading
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +27,13 @@ class AssistantDatabase:
             db_path: Path to the SQLite database file
         """
         self.db_path = db_path
-        self.conn: Optional[sqlite3.Connection] = None
+        self.conn: sqlite3.Connection | None = None
         self._local = threading.local()  # Thread-local storage for connections
         self._write_lock = threading.Lock()  # Lock for write operations
         self._pending_commits = []  # Buffer for batch commits
         self._commit_threshold = 10  # Commit after N operations
+        self._all_connections: list[sqlite3.Connection] = []  # Track all connections for cleanup
+        self._connections_lock = threading.Lock()  # Lock for connection tracking
         self._initialize_database()
 
     def _get_connection(self) -> sqlite3.Connection:
@@ -50,6 +51,11 @@ class AssistantDatabase:
             self._local.conn.execute(
                 "PRAGMA busy_timeout=60000"
             )  # 60 second busy timeout
+
+            # Track this connection for cleanup
+            with self._connections_lock:
+                self._all_connections.append(self._local.conn)
+
             logger.debug(
                 f"Created new connection for thread {threading.current_thread().name}"
             )
@@ -140,8 +146,8 @@ class AssistantDatabase:
         self,
         role: str,
         content: str,
-        session_id: Optional[str] = None,
-        timestamp: Optional[datetime] = None,
+        session_id: str | None = None,
+        timestamp: datetime | None = None,
     ) -> int:
         """
         Add a conversation message to the database.
@@ -183,12 +189,12 @@ class AssistantDatabase:
     def add_metadata(
         self,
         conversation_id: int,
-        people: Optional[List[str]] = None,
-        topics: Optional[List[str]] = None,
-        dates_mentioned: Optional[str] = None,
-        sentiment: Optional[str] = None,
-        category: Optional[str] = None,
-        embedding: Optional[bytes] = None,
+        people: list[str | None] = None,
+        topics: list[str | None] = None,
+        dates_mentioned: str | None = None,
+        sentiment: str | None = None,
+        category: str | None = None,
+        embedding: bytes | None = None,
     ) -> int:
         """
         Add metadata for a conversation.
@@ -238,12 +244,12 @@ class AssistantDatabase:
 
     def get_conversations(
         self,
-        limit: Optional[int] = None,
-        role: Optional[str] = None,
-        session_id: Optional[str] = None,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
-    ) -> List[Dict]:
+        limit: int | None = None,
+        role: str | None = None,
+        session_id: str | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+    ) -> list[Dict]:
         """
         Retrieve conversations with optional filters.
 
@@ -290,7 +296,7 @@ class AssistantDatabase:
 
         return [dict(row) for row in rows]
 
-    def get_conversation_with_metadata(self, conversation_id: int) -> Optional[Dict]:
+    def get_conversation_with_metadata(self, conversation_id: int) -> Dict | None:
         """
         Get a conversation with its metadata.
 
@@ -327,7 +333,7 @@ class AssistantDatabase:
             return result
         return None
 
-    def search_by_people(self, person: str, limit: int = 10) -> List[Dict]:
+    def search_by_people(self, person: str, limit: int = 10) -> list[Dict]:
         """
         Search conversations mentioning a specific person.
 
@@ -368,7 +374,7 @@ class AssistantDatabase:
 
         return results
 
-    def search_by_topic(self, topic: str, limit: int = 10) -> List[Dict]:
+    def search_by_topic(self, topic: str, limit: int = 10) -> list[Dict]:
         """
         Search conversations by topic.
 
@@ -409,7 +415,7 @@ class AssistantDatabase:
 
         return results
 
-    def get_all_people(self) -> List[str]:
+    def get_all_people(self) -> list[str]:
         """
         Get all unique people mentioned in conversations.
 
@@ -433,7 +439,7 @@ class AssistantDatabase:
 
         return sorted(list(people_set))
 
-    def get_all_topics(self) -> List[str]:
+    def get_all_topics(self) -> list[str]:
         """
         Get all unique topics discussed in conversations.
 
@@ -458,8 +464,8 @@ class AssistantDatabase:
         return sorted(list(topics_set))
 
     def get_embeddings_for_search(
-        self, limit: Optional[int] = None
-    ) -> List[Tuple[int, bytes]]:
+        self, limit: int | None = None
+    ) -> list[tuple[int, bytes]]:
         """
         Get all conversation embeddings for similarity search.
 
@@ -536,16 +542,28 @@ class AssistantDatabase:
             if self._pending_commits:
                 self._flush_commits()
 
-        # Close thread-local connection if it exists
-        if hasattr(self._local, "conn") and self._local.conn:
-            self._local.conn.close()
+        # Close ALL thread-local connections (not just the current thread)
+        with self._connections_lock:
+            connections_to_close = list(self._all_connections)
+            self._all_connections.clear()
+
+        for conn in connections_to_close:
+            try:
+                if conn:
+                    conn.close()
+            except Exception as e:
+                logger.debug(f"Error closing connection: {e}")
+
+        # Clean up thread-local storage in current thread
+        if hasattr(self._local, "conn"):
             self._local.conn = None
-            logger.info("Database connection closed")
 
         # Close main connection if it exists (legacy)
         if self.conn:
             self.conn.close()
             self.conn = None
+
+        logger.info(f"Closed {len(connections_to_close)} database connection(s)")
 
     def __enter__(self):
         """Context manager entry."""

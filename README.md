@@ -11,7 +11,7 @@ Run powerful AI language models FREE completely offline. No "Big Brother" with y
 
 ## What You Need
 
-Python 3.10 or newer. A GPU helps but isn't required. Models download automatically from Hugging Face (default is about 1.5GB). That's it.
+Python 3.10 or newer (tested with Python 3.14). A GPU helps but isn't required. Models download automatically from Hugging Face (default is about 1.5GB). That's it.
 
 ## Getting Started
 

@@ -11,7 +11,7 @@ import logging
 import signal
 from contextlib import contextmanager
 from threading import Thread
-from typing import Iterator, List, Optional, Tuple
+from typing import Iterator
 
 import torch
 from transformers import TextIteratorStreamer
@@ -45,7 +45,7 @@ class TextGenerator:
         self.generation_timeout = generation_timeout
 
     @contextmanager
-    def _generation_timeout(self, timeout: Optional[int] = None):
+    def _generation_timeout(self, timeout: int | None = None):
         """Context manager for generation timeout."""
         timeout = timeout or self.generation_timeout
 
@@ -77,12 +77,12 @@ class TextGenerator:
     def generate_text(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
-        max_new_tokens: Optional[int] = None,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None,
-        top_k: Optional[int] = None,
-        do_sample: Optional[bool] = None,
+        system_prompt: str | None = None,
+        max_new_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
+        do_sample: bool | None = None,
         return_full_text: bool = False,
     ) -> str:
         """
@@ -171,11 +171,11 @@ class TextGenerator:
 
     def generate_chat(
         self,
-        messages: List[dict],
-        max_new_tokens: Optional[int] = None,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None,
-        do_sample: Optional[bool] = None,
+        messages: list[dict],
+        max_new_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        do_sample: bool | None = None,
         **kwargs,
     ) -> str:
         """
@@ -233,11 +233,11 @@ class TextGenerator:
 
     def generate_chat_stream(
         self,
-        messages: List[dict],
-        max_new_tokens: Optional[int] = None,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None,
-        do_sample: Optional[bool] = None,
+        messages: list[dict],
+        max_new_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        do_sample: bool | None = None,
         **kwargs,
     ) -> Iterator[str]:
         """

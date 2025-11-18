@@ -8,7 +8,6 @@ This module manages all configuration settings including:
 """
 
 import os
-from typing import Optional
 from dotenv import load_dotenv
 
 # Load environment variables from .env file

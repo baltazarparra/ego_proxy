@@ -8,7 +8,6 @@ This module handles:
 """
 
 import logging
-from typing import Optional, Tuple
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -44,10 +43,10 @@ def get_torch_dtype(dtype_str: str = "auto"):
 
 
 def load_tokenizer_and_model(
-    model_id: Optional[str] = None,
-    device_map: Optional[str] = None,
-    torch_dtype: Optional[str] = None,
-) -> Tuple[AutoTokenizer, AutoModelForCausalLM]:
+    model_id: str | None = None,
+    device_map: str | None = None,
+    torch_dtype: str | None = None,
+) -> tuple[AutoTokenizer, AutoModelForCausalLM]:
     """
     Load tokenizer and model from Hugging Face.
 

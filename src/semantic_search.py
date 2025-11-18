@@ -7,7 +7,6 @@ for finding relevant past conversations.
 
 import logging
 import numpy as np
-from typing import List, Tuple, Optional
 import struct
 
 logger = logging.getLogger(__name__)
@@ -60,7 +59,7 @@ def generate_embedding(text: str) -> np.ndarray:
         raise
 
 
-def generate_embeddings_batch(texts: List[str]) -> List[np.ndarray]:
+def generate_embeddings_batch(texts: list[str]) -> list[np.ndarray]:
     """
     Generate embeddings for multiple texts efficiently.
 
@@ -136,10 +135,10 @@ def cosine_similarity(embedding1: np.ndarray, embedding2: np.ndarray) -> float:
 
 def find_most_similar(
     query_embedding: np.ndarray,
-    stored_embeddings: List[Tuple[int, bytes]],
+    stored_embeddings: list[tuple[int, bytes]],
     top_k: int = 5,
     min_similarity: float = 0.3
-) -> List[Tuple[int, float]]:
+) -> list[tuple[int, float]]:
     """
     Find the most similar stored embeddings to a query embedding.
 
@@ -206,10 +205,10 @@ def batch_cosine_similarity(query_embedding: np.ndarray, embeddings: np.ndarray)
 
 def search_conversations(
     query: str,
-    stored_embeddings: List[Tuple[int, bytes]],
+    stored_embeddings: list[tuple[int, bytes]],
     top_k: int = 5,
     min_similarity: float = 0.3
-) -> List[Tuple[int, float]]:
+) -> list[tuple[int, float]]:
     """
     Search for conversations similar to a text query.
 
@@ -252,7 +251,7 @@ class EmbeddingCache:
         self.max_size = max_size
         self.access_order = []
     
-    def get(self, key: str) -> Optional[np.ndarray]:
+    def get(self, key: str) -> np.ndarray | None:
         """
         Get an embedding from cache.
 

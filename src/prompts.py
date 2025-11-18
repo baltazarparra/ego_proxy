@@ -5,8 +5,6 @@ Contains prompt templates for the assistant persona, context injection,
 and metadata extraction.
 """
 
-from typing import Dict, List
-
 # Assistant system prompt
 ASSISTANT_SYSTEM_PROMPT = """You are a highly capable personal work assistant with perfect memory. Your role is to:
 
@@ -107,7 +105,7 @@ Return only valid JSON with fields: people, topics, dates_mentioned, sentiment, 
 
 
 def create_context_injection_prompt(
-    retrieved_contexts: List[Dict], current_query: str
+    retrieved_contexts: list[dict], current_query: str
 ) -> str:
     """
     Create a prompt that injects retrieved context into the conversation.
@@ -166,7 +164,7 @@ def create_context_injection_prompt(
     return "".join(context_parts)
 
 
-def create_timeline_summary(conversations: List[Dict], person: str = None) -> str:
+def create_timeline_summary(conversations: list[dict], person: str | None = None) -> str:
     """
     Create a human-readable timeline summary of conversations.
 
@@ -215,7 +213,7 @@ def create_timeline_summary(conversations: List[Dict], person: str = None) -> st
     return "\n".join(lines)
 
 
-def create_search_results_summary(results: List[Dict], query: str) -> str:
+def create_search_results_summary(results: list[dict], query: str) -> str:
     """
     Create a formatted summary of search results.
 
@@ -270,7 +268,7 @@ def create_search_results_summary(results: List[Dict], query: str) -> str:
     return "\n".join(lines)
 
 
-def create_stats_summary(stats: Dict) -> str:
+def create_stats_summary(stats: dict) -> str:
     """
     Create a formatted summary of database statistics.
 
