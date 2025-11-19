@@ -226,6 +226,11 @@ class AssistantChatCLI:
             message: Message content
             role: Message role
         """
+        # Skip enrichment if shutdown is in progress
+        if self._shutdown_requested:
+            logger.debug("Skipping enrichment due to shutdown")
+            return
+
         try:
             # Extract metadata using LLM
             metadata = self.extractor.extract_metadata(message, role)
@@ -247,7 +252,11 @@ class AssistantChatCLI:
 
             logger.debug(f"Enriched conversation {conversation_id}")
         except Exception as e:
-            logger.warning(f"Could not enrich conversation: {e}")
+            # Suppress database lock errors during shutdown - they're expected
+            if "database is locked" in str(e).lower() and self._shutdown_requested:
+                logger.debug("Database locked during shutdown (expected)")
+            else:
+                logger.warning(f"Could not enrich conversation: {e}")
 
     def enrich_conversation_sync(self, conversation_id: int, message: str, role: str):
         """
@@ -305,6 +314,74 @@ class AssistantChatCLI:
                         return
                 else:
                     logger.warning(f"Could not enrich conversation synchronously: {e}")
+                    return
+
+    def enrich_conversation_async(self, conversation_id: int, message: str, role: str):
+        """
+        Extract and save metadata for a conversation asynchronously with retry logic.
+
+        This method is used for background enrichment tasks (typically assistant responses)
+        and includes retry logic to handle database lock contention.
+
+        Args:
+            conversation_id: ID of the conversation
+            message: Message content
+            role: Message role
+        """
+        # Skip enrichment if shutdown is in progress
+        if self._shutdown_requested:
+            logger.debug("Skipping async enrichment due to shutdown")
+            return
+
+        import time
+
+        max_retries = 5
+        base_delay = 0.2  # Slightly longer delay for background operations
+
+        for attempt in range(max_retries):
+            try:
+                # Extract metadata using LLM
+                metadata = self.extractor.extract_metadata(message, role)
+
+                # Generate embedding
+                embedding = generate_embedding(message)
+                embedding_bytes = embedding_to_bytes(embedding)
+
+                # Save metadata to database with retry logic
+                self.db.add_metadata(
+                    conversation_id=conversation_id,
+                    people=metadata.get("people"),
+                    topics=metadata.get("topics"),
+                    dates_mentioned=metadata.get("dates_mentioned"),
+                    sentiment=metadata.get("sentiment"),
+                    category=metadata.get("category"),
+                    embedding=embedding_bytes,
+                )
+
+                logger.debug(f"Enriched conversation {conversation_id} (async)")
+                return  # Success
+
+            except Exception as e:
+                if "database is locked" in str(e).lower():
+                    # Check if shutdown happened during retry
+                    if self._shutdown_requested:
+                        logger.debug("Database locked during shutdown (expected)")
+                        return
+
+                    if attempt < max_retries - 1:
+                        delay = base_delay * (2**attempt)  # Exponential backoff
+                        logger.debug(
+                            f"Database locked during async enrichment, retrying in {delay}s (attempt {attempt + 1}/{max_retries})"
+                        )
+                        time.sleep(delay)
+                    else:
+                        # Only log at debug level - this is not critical since session history provides context
+                        logger.debug(
+                            f"Could not enrich conversation asynchronously after {max_retries} attempts: database is locked"
+                        )
+                        return
+                else:
+                    logger.warning(f"Could not enrich conversation asynchronously: {e}")
                     return
 
     def _enrich_messages_background(
@@ -478,6 +555,15 @@ I automatically save everything and retrieve relevant context for you.
         args = parts[1] if len(parts) > 1 else None
 
         if cmd in ["/exit", "/quit", "/q"]:
+            # Set shutdown flag to stop background enrichment tasks
+            self._shutdown_requested = True
+
+            # Show loading animation during cleanup
+            with self.console.status("[dim]Saving memory and cleaning up...", spinner="dots"):
+                # Give a moment for any pending operations
+                import time
+                time.sleep(0.5)
+
             self.console.print(
                 "\n[yellow]👋 Goodbye! Your memory has been saved.[/yellow]\n"
             )
@@ -852,7 +938,10 @@ I automatically save everything and retrieve relevant context for you.
                 calendar_event = None
                 calendar_created = False
                 if self.calendar:
-                    calendar_event = self.extractor.detect_calendar_intent(user_input)
+                    # Show loading while detecting calendar intent
+                    with self.console.status("[dim]Checking for calendar event...", spinner="dots"):
+                        calendar_event = self.extractor.detect_calendar_intent(user_input)
+
                     if calendar_event:
                         # Show loading indicator while creating event
                         from rich.live import Live
@@ -899,14 +988,16 @@ I automatically save everything and retrieve relevant context for you.
                 # Add to working memory
                 self.add_message("user", user_input)
 
-                # Enrich user message SYNCHRONOUSLY (before response generation)
-                # This ensures the message has an embedding and can be found by semantic search
-                # even during follow-up questions in the same session
-                # Uses retry logic to handle database lock contention
-                self.enrich_conversation_sync(user_conv_id, user_input, "user")
+                # Show loading animation while enriching and generating response
+                self.console.print()
+                with self.console.status("[dim]Processing...", spinner="dots"):
+                    # Enrich user message SYNCHRONOUSLY (before response generation)
+                    # This ensures the message has an embedding and can be found by semantic search
+                    # even during follow-up questions in the same session
+                    # Uses retry logic to handle database lock contention
+                    self.enrich_conversation_sync(user_conv_id, user_input, "user")
 
                 # Generate response with context
-                self.console.print()
                 response = self.stream_response_with_context(user_input)
 
                 if response:
@@ -921,8 +1012,9 @@ I automatically save everything and retrieve relevant context for you.
 
                     # Enrich assistant message in background (non-blocking)
                     # Assistant enrichment can be async since we already have the user's message enriched
+                    # Uses retry logic to handle database lock contention
                     self.enrichment_executor.submit(
-                        self.enrich_conversation,
+                        self.enrich_conversation_async,
                         assistant_conv_id,
                         response,
                         "assistant",
