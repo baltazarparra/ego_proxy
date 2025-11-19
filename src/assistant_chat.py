@@ -8,9 +8,11 @@ extracts metadata, and retrieves relevant context for intelligent responses.
 import argparse
 import atexit
 import logging
+import random
 import signal
 import sys
 import threading
+import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
@@ -48,6 +50,24 @@ logger = logging.getLogger(__name__)
 
 class AssistantChatCLI:
     """Personal assistant chat interface with memory and context retrieval."""
+
+    # Random leaving messages for the exit animation
+    LEAVING_MESSAGES = [
+        "don't close yet, I'm saving data",
+        "wait I'm not finished",
+        "wait a sec",
+        "hey, wait",
+        "calm down",
+        "hold on, still working",
+        "just a moment",
+        "patience, please",
+        "almost done here",
+        "give me a second",
+        "not so fast",
+        "let me finish this",
+        "wrapping things up",
+        "still tidying up",
+    ]
 
     def __init__(
         self,
@@ -563,9 +583,8 @@ I automatically save everything and retrieve relevant context for you.
                 "\n[yellow]👋 Goodbye! Your memory has been saved.[/yellow]\n"
             )
 
-            # Show loader while performing cleanup
-            with self.console.status("[dim]Closing assistant...", spinner="dots"):
-                self._cleanup()
+            # Show dynamic loader while performing cleanup
+            self._cleanup_with_dynamic_status()
 
             return True
 
@@ -873,6 +892,63 @@ Current question: {user_message}"""
         )
         self.console.print()
 
+    def _cleanup_with_dynamic_status(self):
+        """
+        Perform cleanup with dynamically updating leaving messages.
+
+        Shows random leaving messages that update every 5 seconds
+        while the cleanup process runs.
+        """
+        from rich.spinner import Spinner
+
+        # Flag to track cleanup completion
+        cleanup_complete = False
+        cleanup_exception = None
+
+        def run_cleanup():
+            """Run cleanup in a separate thread."""
+            nonlocal cleanup_complete, cleanup_exception
+            try:
+                self._cleanup()
+            except Exception as e:
+                cleanup_exception = e
+            finally:
+                cleanup_complete = True
+
+        # Start cleanup in background thread
+        cleanup_thread = threading.Thread(target=run_cleanup, daemon=True)
+        cleanup_thread.start()
+
+        # Show dynamic status with changing messages
+        try:
+            with Live(console=self.console, transient=True, refresh_per_second=4) as live:
+                last_update = time.time()
+                current_message = random.choice(self.LEAVING_MESSAGES)
+
+                while not cleanup_complete:
+                    # Check if it's time to update the message (every 5 seconds)
+                    current_time = time.time()
+                    if current_time - last_update >= 5.0:
+                        current_message = random.choice(self.LEAVING_MESSAGES)
+                        last_update = current_time
+
+                    # Update the display with current message
+                    spinner = Spinner("dots", text=f"[dim]{current_message}...[/dim]")
+                    live.update(spinner)
+
+                    # Small sleep to prevent busy waiting
+                    time.sleep(0.1)
+
+        except Exception as e:
+            logger.warning(f"Error in dynamic status display: {e}")
+
+        # Wait for cleanup thread to finish (should be done by now)
+        cleanup_thread.join(timeout=2.0)
+
+        # Re-raise any exception that occurred during cleanup
+        if cleanup_exception:
+            raise cleanup_exception
+
     def _cleanup(self):
         """Cleanup resources on exit."""
         # Prevent double cleanup
@@ -1046,9 +1122,8 @@ Current question: {user_message}"""
                     "\n[yellow]👋 Goodbye! Your memory has been saved.[/yellow]\n"
                 )
 
-                # Show loader while performing cleanup
-                with self.console.status("[dim]Closing assistant...", spinner="dots"):
-                    self._cleanup()
+                # Show dynamic loader while performing cleanup
+                self._cleanup_with_dynamic_status()
 
                 break
 
